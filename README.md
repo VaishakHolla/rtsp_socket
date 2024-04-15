@@ -12,3 +12,6 @@ In case there is a need to use ObjectInField Topic, _process_metadata can be cha
 # Docker commands to setup container
 docker build -t socket-server .
 docker run -p 8080:80 socket-server
+
+To send data to a socket on the host machine have to change network of docker to host
+docker run --rm --network host socket-server
