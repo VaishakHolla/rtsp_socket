@@ -1,12 +1,9 @@
-FROM ubuntu:latest
+FROM python:3.9-slim
 # Set noninteractive mode to avoid timezone configuration prompt
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RTSP_URL="rtsp://labstudent:Erclab_717@192.168.0.88:554/vcd=2"
 # Update package list and install essential dependencies
-RUN apt-get update && apt-get install -y \
-    sudo \
-    vim \
-    wget \
+RUN apt-get update && apt-get install -y --no-install-recommends\
     build-essential \
     pkg-config \
     python3 \
@@ -30,7 +27,9 @@ RUN apt-get update && apt-get install -y \
     gstreamer1.0-pulseaudio \
     python3-gst-1.0 \
     gir1.2-gstreamer-1.0 \
-    python3-gi 
+    python3-gi\
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install the gi-dev package manually
 RUN apt-get install -y libgirepository1.0-dev
