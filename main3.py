@@ -170,7 +170,7 @@ def _calculate_heading_position(current_x,current_y,previous_x,previous_y):
     if previous_x is None or previous_y is None:
         return 28800
     else:
-        return int(math.degrees(math.atan2(float(current_y) - float(previous_y),float(current_x) - float(previous_x)))/0.0125)
+        return abs(int(math.degrees(math.atan2(float(current_y) - float(previous_y),float(current_x) - float(previous_x)))/0.0125))
 
 def _send_data_to_client(data_by_object_id):
     # current_time = time.time()
