@@ -94,7 +94,7 @@ def _process_entering_object(notification_message):
             value = key_element.get("Value")
             object_tracking_buffer.append(value)
             if value not in object_info_tracking_stack:
-                object_info_tracking_stack[value] = {"initial_heading_x": None, "initial_heading_y": None}
+                object_info_tracking_stack[value] = {"initial_heading_x": None, "initial_heading_y": None,"initial_heading_x1": None, "initial_heading_y1": None}
     except Exception as e:
         print(f"An error occurred in _process_entering_object: {e}", flush=True)
 
@@ -138,7 +138,7 @@ def _extract_object_data(root, target_object_id):
                     #Update initial_heading values to current value to calculate the next heading
                     # object_info_tracking_stack[target_object_id]["initial_heading_x"] = center_of_gravity_elem.get("x")
                     # object_info_tracking_stack[target_object_id]["initial_heading_y"] = center_of_gravity_elem.get("y")
-                
+                    # print(object_data["Heading"],flush=True)
                 class_candidate_elem = object_elem.find(".//tt:ClassCandidate", namespaces={"tt": "http://www.onvif.org/ver10/schema"})
                 if class_candidate_elem is not None:
                     object_data["class_candidate_type"] = class_candidate_elem.find(".//tt:Type", namespaces={"tt": "http://www.onvif.org/ver10/schema"}).text
@@ -150,10 +150,15 @@ def _extract_object_data(root, target_object_id):
                     object_data["lat"] = geolocation_elem.get("lat")
                     object_data["lon"] = geolocation_elem.get("lon")
                     object_data["elevation"] = geolocation_elem.get("elevation")
-                    object_data["heading"]=calculate_bearing(object_info_tracking_stack[target_object_id]["initial_heading_x"],object_info_tracking_stack[target_object_id]["initial_heading_y"],object_data["lat"],object_data["lon"])
-                    object_info_tracking_stack[target_object_id]["initial_heading_x"] = center_of_gravity_elem.get("lat")
-                    object_info_tracking_stack[target_object_id]["initial_heading_y"] = center_of_gravity_elem.get("lon")
-                    print(object_data["Heading"],flush=True)
+                    if object_info_tracking_stack[target_object_id]["initial_heading_x1"] is None:
+                        object_info_tracking_stack[target_object_id]["initial_heading_x1"] = object_data["lat"]
+                    if object_info_tracking_stack[target_object_id]["initial_heading_y1"] is None:
+                        object_info_tracking_stack[target_object_id]["initial_heading_y1"] = object_data["lon"]
+                    
+                    object_data["Heading"]=calculate_bearing(object_info_tracking_stack[target_object_id]["initial_heading_x1"],object_info_tracking_stack[target_object_id]["initial_heading_y1"],object_data["lat"],object_data["lon"])
+                    object_info_tracking_stack[target_object_id]["initial_heading_x1"] = geolocation_elem.get("lat")
+                    object_info_tracking_stack[target_object_id]["initial_heading_y1"] = geolocation_elem.get("lon")
+                    # print(object_data["Heading"],flush=True)
                 speed_elem = object_elem.find(".//tt:Speed", namespaces={"tt": "http://www.onvif.org/ver10/schema"})
                 if speed_elem is not None:
                     object_data["Speed"] = speed_elem.text
@@ -176,28 +181,37 @@ def _calculate_heading_position(current_x,current_y,previous_x,previous_y):
         return abs(int(math.degrees(math.atan2(float(current_y) - float(previous_y),float(current_x) - float(previous_x)))/0.0125))
 
 
+import math
+
 def calculate_bearing(lat1, lon1, lat2, lon2):
-    # Convert degrees to radians
-    lat1 = math.radians(lat1)
-    lon1 = math.radians(lon1)
-    lat2 = math.radians(lat2)
-    lon2 = math.radians(lon2)
+    try:
+        
+        # Convert degrees to radians
+        lat1 = math.radians(float(lat1))
+        lon1 = math.radians(float(lon1))
+        lat2 = math.radians(float(lat2))
+        lon2 = math.radians(float(lon2))
+        
+        # Calculate differences
+        delta_lon = lon2 - lon1
+        
+        # Calculate bearing
+        x = math.sin(delta_lon) * math.cos(lat2)
+        y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon))
+        initial_bearing = math.atan2(x, y)
+        
+        # Convert radians to degrees
+        initial_bearing = math.degrees(initial_bearing)
+        
+        # Normalize bearing to 0-360/0.0125
+        compass_bearing = ((initial_bearing + 360) % 360) / 0.0125
+        
+        return abs(int(compass_bearing))
 
-    # Calculate differences
-    delta_lon = lon2 - lon1
+    except Exception as e:
+        print("An error occurred:", str(e), flush=True)
+        return None
 
-    # Calculate bearing
-    x = math.sin(delta_lon) * math.cos(lat2)
-    y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon))
-    initial_bearing = math.atan2(x, y)
-
-    # Convert radians to degrees
-    initial_bearing = math.degrees(initial_bearing)
-
-    # Normalize bearing to 0-360/0.0125
-    compass_bearing = ((initial_bearing + 360) % 360)/0.0125
-
-    return compass_bearing
 
 def _send_data_to_client(data_by_object_id):
     # current_time = time.time()
