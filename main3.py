@@ -125,8 +125,8 @@ def _extract_object_data(root, target_object_id):
                 if center_of_gravity_elem is not None:
                     object_data["x"] = center_of_gravity_elem.get("x")
                     object_data["y"] = center_of_gravity_elem.get("y")
-                    object_data["Heading"] = _calculate_heading_position(object_data["x"],object_data["y"],object_info_tracking_stack[target_object_id]["initial_heading_x"],object_info_tracking_stack[target_object_id]["initial_heading_y"])
-                    print(object_data["Heading"],flush=True)
+                    # object_data["Heading"] = _calculate_heading_position(object_data["x"],object_data["y"],object_info_tracking_stack[target_object_id]["initial_heading_x"],object_info_tracking_stack[target_object_id]["initial_heading_y"])
+                    
                     # if object_info_tracking_stack[target_object_id]["initial_heading_x"] is None:
                     #     object_info_tracking_stack[target_object_id]["initial_heading_x"] = center_of_gravity_elem.get("x")
                     # if object_info_tracking_stack[target_object_id]["initial_heading_y"] is None:
@@ -136,8 +136,8 @@ def _extract_object_data(root, target_object_id):
                     #     float(center_of_gravity_elem.get("y")) - float(object_info_tracking_stack[target_object_id]["initial_heading_y"]),
                     #     float(center_of_gravity_elem.get("x")) - float(object_info_tracking_stack[target_object_id]["initial_heading_x"])))
                     #Update initial_heading values to current value to calculate the next heading
-                    object_info_tracking_stack[target_object_id]["initial_heading_x"] = center_of_gravity_elem.get("x")
-                    object_info_tracking_stack[target_object_id]["initial_heading_y"] = center_of_gravity_elem.get("y")
+                    # object_info_tracking_stack[target_object_id]["initial_heading_x"] = center_of_gravity_elem.get("x")
+                    # object_info_tracking_stack[target_object_id]["initial_heading_y"] = center_of_gravity_elem.get("y")
                 
                 class_candidate_elem = object_elem.find(".//tt:ClassCandidate", namespaces={"tt": "http://www.onvif.org/ver10/schema"})
                 if class_candidate_elem is not None:
@@ -150,7 +150,10 @@ def _extract_object_data(root, target_object_id):
                     object_data["lat"] = geolocation_elem.get("lat")
                     object_data["lon"] = geolocation_elem.get("lon")
                     object_data["elevation"] = geolocation_elem.get("elevation")
-
+                    object_data["heading"]=calculate_bearing(object_info_tracking_stack[target_object_id]["initial_heading_x"],object_info_tracking_stack[target_object_id]["initial_heading_y"],object_data["lat"],object_data["lon"])
+                    object_info_tracking_stack[target_object_id]["initial_heading_x"] = center_of_gravity_elem.get("lat")
+                    object_info_tracking_stack[target_object_id]["initial_heading_y"] = center_of_gravity_elem.get("lon")
+                    print(object_data["Heading"],flush=True)
                 speed_elem = object_elem.find(".//tt:Speed", namespaces={"tt": "http://www.onvif.org/ver10/schema"})
                 if speed_elem is not None:
                     object_data["Speed"] = speed_elem.text
@@ -171,6 +174,30 @@ def _calculate_heading_position(current_x,current_y,previous_x,previous_y):
         return 28800
     else:
         return abs(int(math.degrees(math.atan2(float(current_y) - float(previous_y),float(current_x) - float(previous_x)))/0.0125))
+
+
+def calculate_bearing(lat1, lon1, lat2, lon2):
+    # Convert degrees to radians
+    lat1 = math.radians(lat1)
+    lon1 = math.radians(lon1)
+    lat2 = math.radians(lat2)
+    lon2 = math.radians(lon2)
+
+    # Calculate differences
+    delta_lon = lon2 - lon1
+
+    # Calculate bearing
+    x = math.sin(delta_lon) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1) * math.cos(lat2) * math.cos(delta_lon))
+    initial_bearing = math.atan2(x, y)
+
+    # Convert radians to degrees
+    initial_bearing = math.degrees(initial_bearing)
+
+    # Normalize bearing to 0-360/0.0125
+    compass_bearing = ((initial_bearing + 360) % 360)/0.0125
+
+    return compass_bearing
 
 def _send_data_to_client(data_by_object_id):
     # current_time = time.time()
