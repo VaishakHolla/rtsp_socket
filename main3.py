@@ -155,9 +155,9 @@ def _extract_object_data(root, target_object_id):
                     if object_info_tracking_stack[target_object_id]["initial_heading_y1"] is None:
                         object_info_tracking_stack[target_object_id]["initial_heading_y1"] = object_data["lon"]
                     
-                    object_data["Heading"]=calculate_bearing(object_info_tracking_stack[target_object_id]["initial_heading_x1"],object_info_tracking_stack[target_object_id]["initial_heading_y1"],object_data["lat"],object_data["lon"])
-                    object_info_tracking_stack[target_object_id]["initial_heading_x1"] = geolocation_elem.get("lat")
-                    object_info_tracking_stack[target_object_id]["initial_heading_y1"] = geolocation_elem.get("lon")
+                    # object_data["Heading"]=calculate_bearing(object_info_tracking_stack[target_object_id]["initial_heading_x1"],object_info_tracking_stack[target_object_id]["initial_heading_y1"],object_data["lat"],object_data["lon"])
+                    # object_info_tracking_stack[target_object_id]["initial_heading_x1"] = geolocation_elem.get("lat")
+                    # object_info_tracking_stack[target_object_id]["initial_heading_y1"] = geolocation_elem.get("lon")
                     # print(object_data["Heading"],flush=True)
                 speed_elem = object_elem.find(".//tt:Speed", namespaces={"tt": "http://www.onvif.org/ver10/schema"})
                 if speed_elem is not None:
@@ -241,7 +241,18 @@ def _send_data_to_client(data_by_object_id):
                 current_longitude_micro_deg = int(float(value.get("lon")) * 1e7)  # Convert longitude to micro-degrees
                 elevation =  int(float(value.get("elevation")) / 10)  # Convert elevation to units of 10cm steps
                 speed = int(float(value.get("Speed")) * 50)  # Convert speed to units of 0.02 m/s
-                heading = (value.get("Heading"))  # Convert heading to units of 0.0125 degrees
+                # heading = (value.get("Heading"))  # Convert heading to units of 0.0125 degrees
+                # Calculate heading here
+                initial_lat = object_info_tracking_stack[object_id]["initial_heading_x1"]
+                initial_lon = object_info_tracking_stack[object_id]["initial_heading_y1"]
+                current_lat = value.get("lat")
+                current_lon = value.get("lon")
+                heading = calculate_bearing(initial_lat, initial_lon, current_lat, current_lon)
+                # print(heading,flush=True)
+                # Update initial positions
+                object_info_tracking_stack[object_id]["initial_heading_x1"] = current_lat
+                object_info_tracking_stack[object_id]["initial_heading_y1"] = current_lon
+
                 pad_value = 0    # pad value
                 # Pack the data for the current object
                 packed_data += struct.pack(DATA_FORMAT, int(object_id), object_type, time_ms,
@@ -265,7 +276,7 @@ def send_data_periodically(sc):
     if data_to_send:
         _send_data_to_client(data_to_send)
         data_to_send = {}  # Clear the data after sending
-    scheduler.enter(0.1, 1, send_data_periodically, (sc,))  # Schedule next send after 100ms
+    scheduler.enter(0.2, 1, send_data_periodically, (sc,))  # Schedule next send after 100ms
 
 if __name__ == "__main__":
     try:
