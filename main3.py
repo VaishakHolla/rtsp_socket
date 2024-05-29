@@ -248,7 +248,7 @@ def _send_data_to_client(data_by_object_id):
                 current_lat = value.get("lat")
                 current_lon = value.get("lon")
                 heading = calculate_bearing(initial_lat, initial_lon, current_lat, current_lon)
-                # print(heading,flush=True)
+                print(heading,flush=True)
                 # Update initial positions
                 object_info_tracking_stack[object_id]["initial_heading_x1"] = current_lat
                 object_info_tracking_stack[object_id]["initial_heading_y1"] = current_lon
